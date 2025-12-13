@@ -41,7 +41,8 @@ This app combines **minimal design + animation + fun illustrations** to make wea
 
 ## 📸 Preview
 
-c:\Users\User\Pictures\Screenshots\Screenshot (8).png
+<img width="1366" height="638" alt="Screenshot (8)" src="https://github.com/user-attachments/assets/1e3c6de7-05f4-4394-8254-44165b07699b" />
+
 
 ---
 
@@ -68,3 +69,4 @@ If you like this project, **give it a star ⭐** and feel free to fork it!
 ---
 
 ### 👨‍💻 Developed by **Aman Kumar**
+
