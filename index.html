@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" href="logo.png" type="image/png" />
+<title>Penguin -The Weather App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+
+<style>
+
+:root{ --muted:#103044; --accent:#2196F3; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+body{
+  font-family:Inter, system-ui, -apple-system,"Segoe UI",Roboto,Arial;
+  background:linear-gradient(135deg,#89f7fe 0%,#66a6ff 100%);
+  color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;min-height:100vh;
+  overflow-x:hidden;
+  overflow-y:auto; /* ★ FIXED: mobile scroll enabled */
+  position:relative;
+  transition:transform 160ms linear;
+}
+
+/* brand logo top-left */
+.brand-logo {
+  position:fixed;
+  top:14px;
+  left:16px;
+  width:46px;
+  height:46px;
+  z-index:10050;
+  object-fit:contain;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+}
+
+/* reduced camera shake: only applied to appRoot */
+.shake {
+  animation: cameraShake 520ms cubic-bezier(.25,.75,.5,1);
+}
+@keyframes cameraShake {
+  0% { transform: translate(0,0) rotate(0deg); }
+  12% { transform: translate(-6px,4px) rotate(-0.6deg); }
+  28% { transform: translate(6px,-4px) rotate(0.6deg); }
+  48% { transform: translate(-8px,6px) rotate(-0.9deg); }
+  72% { transform: translate(6px,-4px) rotate(0.6deg); }
+  100% { transform: translate(0,0) rotate(0deg); }
+}
+
+.svg-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(135deg,#89f7fe 0%,#66a6ff 100%);}
+.svg-bg svg{width:100%;height:100%;position:absolute;top:0;left:0;}
+.bg-particles{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0.6;mix-blend-mode:overlay;}
+
+/* default app z-index (we may change when thunder toggles) */
+.app{
+  width:100%;max-width:600px;position:relative;
+  z-index:9000;display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+
+.search-container{
+  width:100%;max-width:450px;display:flex;gap:15px;
+  margin-bottom:20px;align-items:center;justify-content:center;
+}
+.search-container input{
+  flex:1;padding:15px 24px;border-radius:30px;background:rgba(255,255,255,0.2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.4);
+  font-size:16px;font-weight:600;color:#ffffff;outline:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.05);
+  animation:floatUI 4s ease-in-out infinite;transition:all 0.3s ease;
+}
+.search-container input::placeholder{color:rgba(255,255,255,0.75);}
+
+.search-container button{
+  padding:15px 30px;border-radius:30px;cursor:pointer;font-weight:800;font-size:15px;
+  background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.6);color:#ffffff;
+  box-shadow:0 8px 32px rgba(0,0,0,0.05);
+  animation:floatUI 4.5s ease-in-out infinite;animation-delay:0.5s;
+  transition:all 0.3s ease;
+}
+.search-container button:hover{
+  background:rgba(255,255,255,0.85);color:var(--accent);
+  box-shadow:0 0 25px rgba(255,255,255,0.6);
+  transform:translateY(-2px);border-color:#fff;
+}
+
+@keyframes floatUI{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+  100%{transform:translateY(0)}
+}
+
+.main-display{text-align:center;display:flex;flex-direction:column;align-items:center;}
+
+.anim-wrap{
+  width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,0.8)0%,rgba(255,255,255,0.2)70%);
+  backdrop-filter:blur(5px);
+  box-shadow:0 0 60px rgba(255,255,255,0.4);
+  display:flex;align-items:center;justify-content:center;margin-bottom:10px;
+}
+
+.gif-icon{width:85%;height:85%;object-fit:contain;}
+
+.temp{
+  font-size:80px;font-weight:900;line-height:1;color:#fff;
+  text-shadow:0 4px 20px rgba(0,0,0,0.15);margin-top:10px;
+}
+
+.city{
+  font-size:24px;font-weight:600;color:rgba(255,255,255,0.95);
+  margin-bottom:25px;text-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+.details-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;
+  background:rgba(255,255,255,0.2);
+  border:1px solid rgba(255,255,255,0.4);
+  border-radius:20px;padding:15px;
+  backdrop-filter:blur(12px);
+  box-shadow:0 8px 32px rgba(31,38,135,0.1);
+  animation:floatUI 5s ease-in-out infinite;animation-delay:1s;
+}
+
+.stat-item{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.stat-val{font-weight:800;font-size:15px;color:#0f3c50;transition:color 200ms linear;}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;color:rgba(15,60,80,0.8);}
+
+/* FX containers */
+#fxFullContainer{position:fixed;inset:0;z-index:9400;pointer-events:none;overflow:visible;}
+#screenBlack{position:fixed;inset:0;background:#000;z-index:9300;opacity:0;pointer-events:none;transition:opacity 180ms linear;}
+
+.fx-rain .raindrop-full{
+  position:absolute;width:2px;height:18px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(80,170,255,0.95),rgba(30,120,220,0.9));
+  opacity:0.95;transform:translateY(-20vh);filter:blur(0.4px);
+  animation:rainFallFull linear infinite;
+}
+@keyframes rainFallFull{
+  from{transform:translateY(-20vh)}
+  to{transform:translateY(120vh)}
+}
+
+.fx-snow .flake-full{
+  position:absolute;font-size:20px;color:#ffffff;opacity:0.95;
+  text-shadow:0 6px 12px rgba(0,0,0,0.12);animation:snowFallFull linear infinite;
+}
+@keyframes snowFallFull{
+  from{transform:translateY(-12vh) rotate(0deg)}
+  to{transform:translateY(120vh) rotate(180deg)}
+}
+
+.fx-wind .wind-streak{
+  position:absolute;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0.1));
+  opacity:0.9;transform:translateX(-40vw);animation:windMove 3s linear infinite;
+}
+@keyframes windMove{
+  from{transform:translateX(-40vw)}
+  to{transform:translateX(140vw)}
+}
+
+.fx-sun .sun-glow{
+  position:absolute;width:100%;height:100%;
+  background:radial-gradient(circle at 20% 30%, rgba(255,230,150,0.2), transparent 40%);
+  mix-blend-mode:screen;pointer-events:none;
+}
+
+/* spark style (unchanged) */
+.spark{position:absolute;pointer-events:none;z-index:9410;will-change:transform,opacity;filter:drop-shadow(0 10px 28px rgba(255,240,200,0.85));}
+.spark svg{display:block;overflow:visible;}
+.spark .core{fill:none;stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;stroke-width:5;stroke-dasharray:600;stroke-dashoffset:600;}
+.spark .glow{fill:none;stroke:#fff2b8;stroke-width:18;opacity:0.95;mix-blend-mode:screen;stroke-dasharray:600;stroke-dashoffset:600;filter:blur(10px);}
+@keyframes drawSpark{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+
+.impact-spark{position:absolute;pointer-events:none;z-index:9420;opacity:0;}
+
+.dimmed{filter:brightness(0.6) contrast(0.95);transition:filter 160ms linear;}
+.thunder-active .stat-val,
+.thunder-active .stat-label,
+.thunder-active .city,
+.thunder-active .temp{
+  color:#ffffff!important;text-shadow:0 6px 30px rgba(0,0,0,0.75);
+}
+
+/* ORIGINAL RESPONSIVE */
+@media (max-width:500px){
+  .temp{font-size:60px}
+  .anim-wrap{width:220px;height:220px}
+  .details-grid{grid-template-columns:repeat(2,1fr);gap:15px}
+  .search-container input,.search-container button{width:100%}
+}
+
+/* ——————————————————————————————— */
+/* ★★★ NEW RESPONSIVE FIXES ADDED ★★★ */
+/* ——————————————————————————————— */
+
+@media (max-width:600px){
+  .search-container{
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .anim-wrap{
+    width:180px;
+    height:180px;
+  }
+
+  .temp{font-size:55px;}
+  .city{font-size:20px;}
+
+  .details-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+    padding:12px;
+  }
+}
+
+@media (max-width:380px){
+  .anim-wrap{
+    width:150px;
+    height:150px;
+  }
+  .temp{font-size:45px;}
+  .city{font-size:18px;}
+}
+
+</style>
+
+</head>
+<body>
+
+  <!-- restored logo -->
+  <img class="brand-logo" src="logo.png" alt="Logo" />
+
+  <div class="svg-bg" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="100%" height="100%" fill="url(#skyGrad)"/>
+
+      <path fill="rgba(255,255,255,0.2)"
+        d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+        
+        <animate attributeName="d" dur="10s" repeatCount="indefinite"
+        
+        values="
+        M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+
+        M0,128L48,144C96,160,192,192,288,197.3C384,203,480,181,576,165.3C672,149,768,139,864,154.7C960,171,1056,213,1152,218.7C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+
+        M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+      </animate>
+
+      </path>
+    </svg>
+  </div>
+
+  <canvas id="particleCanvas" class="bg-particles" aria-hidden="true"></canvas>
+
+  <div class="app" id="appRoot">
+
+    <div class="search-container">
+      <input id="cityInput" type="text" placeholder="Enter city (e.g., Mumbai) or type 'rain' / 'snow' / 'thunder'">
+      <button id="searchBtn" type="button">Search</button>
+    </div>
+
+    <div class="main-display">
+      <div class="anim-wrap">
+        <img id="gifIcon" class="gif-icon" src="img/cloud_gif.gif" alt="weather icon">
+      </div>
+
+      <div class="temp" id="tempText">--°C</div>
+      <div class="city" id="cityText">—</div>
+    </div>
+
+    <div class="details-grid">
+      <div class="stat-item"><div class="stat-val" id="cond">--</div><div class="stat-label">Condition</div></div>
+      <div class="stat-item"><div class="stat-val" id="hum">--</div><div class="stat-label">Humidity</div></div>
+      <div class="stat-item"><div class="stat-val" id="wind">--</div><div class="stat-label">Wind</div></div>
+      <div class="stat-item"><div class="stat-val" id="clouds">--</div><div class="stat-label">Clouds</div></div>
+    </div>
+
+  </div>
+
+  <div id="fxFullContainer" aria-hidden="true"></div>
+  <div id="screenBlack" aria-hidden="true"></div>
+
+<script>
+/* JS WILL BE IN PART 3 (UNCHANGED) */
+document.addEventListener('DOMContentLoaded', () => {
+  const API_KEY = "05928a5b68ba58ad1155285b65c92481";
+
+  /* particle canvas */
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  function resizeCanvas(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  for(let i=0;i<70;i++)
+    particles.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      r:0.6+Math.random()*1.8,
+      vx:(Math.random()-0.5)*0.25,
+      vy:(Math.random()-0.5)*0.25,
+      alpha:0.04+Math.random()*0.14
+    });
+
+  function drawParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(const p of particles){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<-20)p.x=canvas.width+20;
+      if(p.x>canvas.width+20)p.x=-20;
+      if(p.y<-20)p.y=canvas.height+20;
+      if(p.y>canvas.height+20)p.y=-20;
+
+      ctx.beginPath();
+      ctx.fillStyle = "rgba(255,255,255,"+p.alpha+")";
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(drawParticles);
+  }
+  requestAnimationFrame(drawParticles);
+
+  /* DOM refs */
+  const cityInput = document.getElementById('cityInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const gifIcon = document.getElementById('gifIcon');
+  const tempText = document.getElementById('tempText');
+  const cityText = document.getElementById('cityText');
+  const condEl = document.getElementById('cond');
+  const humEl = document.getElementById('hum');
+  const windEl = document.getElementById('wind');
+  const cloudsEl = document.getElementById('clouds');
+  const fxFullContainer = document.getElementById('fxFullContainer');
+  const screenBlack = document.getElementById('screenBlack');
+  const appRoot = document.getElementById('appRoot');
+  const body = document.body;
+
+  let boltSpawnInterval = null;
+  let lightningInterval = null;
+  let audioCtx = null;
+
+  fxFullContainer.style.pointerEvents = 'none';
+  screenBlack.style.pointerEvents = 'none';
+
+  /* GIFS */
+  const GIFS = {
+    Clear:'img/clear_gif.gif',
+    Clouds:'img/cloud_gif.gif',
+    Rain:'img/rain_gif.gif',
+    Snow:'img/snow_gif.gif',
+    Thunderstorm:'img/thunder_gif.gif',
+    Wind:'img/cloud_gif.gif'
+  };
+
+  function setCenterGif(kind){
+    const src = GIFS[kind] || GIFS['Clouds'];
+    try{
+      if(gifIcon.src && gifIcon.src.endsWith(src)){
+        gifIcon.src='';
+        setTimeout(()=> gifIcon.src=src,30);
+      } else gifIcon.src=src;
+    }catch(e){ gifIcon.src=src; }
+
+    gifIcon.style.opacity=0;
+    gifIcon.style.transform='scale(.98)';
+    setTimeout(()=>{
+      gifIcon.style.opacity=1;
+      gifIcon.style.transform='scale(1)';
+    },80);
+  }
+
+  /* FX helpers */
+  function clearFxFull(){
+    if(lightningInterval){ clearInterval(lightningInterval); lightningInterval=null; }
+    if(boltSpawnInterval){ clearInterval(boltSpawnInterval); boltSpawnInterval=null; }
+    fxFullContainer.innerHTML='';
+    screenBlack.style.opacity=0;
+    fxFullContainer.style.zIndex='9400';
+    screenBlack.style.zIndex='9300';
+    appRoot.style.zIndex='9000';
+    body.classList.remove('thunder-active');
+    appRoot.classList.remove('dimmed');
+    try{ if(navigator.vibrate) navigator.vibrate(0); }catch(e){}
+  }
+
+  function createFxWrapper(kind){
+    clearFxFull();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fx-full fx-' + kind.toLowerCase();
+    wrapper.style.pointerEvents = 'none';
+    fxFullContainer.appendChild(wrapper);
+    return wrapper;
+  }
+
+  /* rain - full screen */
+  function startRainFull(intensity = 180){
+    const wrap = createFxWrapper('rain');
+    for(let i=0;i<intensity;i++){
+      const d = document.createElement('div');
+      d.className='raindrop-full';
+      const left = Math.random()*100;
+      const delay = Math.random()*1.2;
+      const dur = 0.6 + Math.random()*0.9;
+      d.style.left = left + 'vw';
+      d.style.top = (-10 - Math.random()*20) + 'vh';
+      d.style.height = (10 + Math.random()*30) + 'px';
+      d.style.animationDuration = dur + 's';
+      d.style.animationDelay = (-delay) + 's';
+      d.style.pointerEvents='none';
+      wrap.appendChild(d);
+    }
+  }
+
+  /* snow - full screen */
+  function startSnowFull(intensity = 220){
+    const wrap = createFxWrapper('snow');
+    for(let i=0;i<intensity;i++){
+      const f = document.createElement('div');
+      f.className='flake-full';
+      f.textContent='❄';
+      const left = Math.random()*100;
+      const size = 8 + Math.random()*28;
+      const dur = 5 + Math.random()*8;
+      const delay = Math.random()*-6;
+
+      f.style.left = left + 'vw';
+      f.style.top = (-10 - Math.random()*25) + 'vh';
+      f.style.fontSize = size + 'px';
+      f.style.opacity = 0.6 + Math.random()*0.4;
+      f.style.animationDuration = dur + 's';
+      f.style.animationDelay = delay + 's';
+      f.style.pointerEvents='none';
+      wrap.appendChild(f);
+    }
+  }
+
+  /* WebAudio thunder rumble */
+  function playThunderBoom(intensity = 0.9, lengthMs = 900){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx;
+
+      const master = ctx.createGain();
+      master.gain.value = Math.max(0,Math.min(1,intensity)) * 0.6;
+      master.connect(ctx.destination);
+
+      const bufferSize = Math.floor(ctx.sampleRate * (lengthMs/1000));
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+
+      for(let i=0;i<bufferSize;i++)
+        data[i] = (Math.random()*2-1) * Math.exp(-i / (ctx.sampleRate*0.6));
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type='lowpass';
+      noiseFilter.frequency.value=120;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.value=0.85;
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(master);
+
+      const osc = ctx.createOscillator();
+      osc.type='sine';
+
+      const oscGain = ctx.createGain();
+      oscGain.gain.value=0.0;
+
+      osc.connect(oscGain);
+      oscGain.connect(master);
+
+      osc.frequency.setValueAtTime(140, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(28, ctx.currentTime + lengthMs/1000);
+
+      oscGain.gain.setValueAtTime(0.001, ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(
+        0.75 * Math.max(0.01,intensity),
+        ctx.currentTime + 0.06
+      );
+      oscGain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + lengthMs/1000
+      );
+
+      noise.start();
+      osc.start();
+      noise.stop(ctx.currentTime + lengthMs/1000);
+      osc.stop(ctx.currentTime + lengthMs/1000);
+
+    }catch(e){
+      console.warn('WebAudio blocked/unavailable:', e);
+    }
+  }
+
+  /* visual helpers */
+  function doScreenFlash(strength = 0.6, quickMs = 80){
+    const flash = document.createElement('div');
+    flash.style.position='fixed';
+    flash.style.inset='0';
+    flash.style.background='#fff';
+    flash.style.opacity=String(strength);
+    flash.style.zIndex='9500';
+    flash.style.pointerEvents='none';
+
+    document.body.appendChild(flash);
+
+    setTimeout(()=>{
+      flash.style.transition=`opacity ${quickMs}ms linear`;
+      flash.style.opacity='0';
+      setTimeout(()=> flash.remove(), quickMs+40);
+    },8);
+  }
+
+  function doCameraShake(){
+    appRoot.classList.remove('shake');
+    void appRoot.offsetWidth;
+    appRoot.classList.add('shake');
+    setTimeout(()=> appRoot.classList.remove('shake'), 620);
+
+    setTimeout(()=>{
+      appRoot.classList.add('shake');
+      setTimeout(()=> appRoot.classList.remove('shake'), 420);
+    }, 180 + Math.random()*160);
+  }
+
+  /* spawn sparks */
+  function spawnSpark({x=null,y=null,size=140,intensity=1.0,impact=true} = {}){
+    const spark = document.createElement('div');
+    spark.className='spark';
+
+    const scale = 0.7 + Math.random()*0.8;
+    const w = Math.round(size * scale);
+    const h = Math.round(size * 1.05 * scale);
+
+    spark.style.width = w + 'px';
+    spark.style.height = h + 'px';
+
+    const posX = (x===null) ? (Math.random() * Math.max(40, window.innerWidth - w)) : x;
+    const posY = (y===null) ? (Math.random() * (window.innerHeight * 0.55)) : y;
+
+    spark.style.left = posX + 'px';
+    spark.style.top = posY + 'px';
+
+    const seg = 3 + Math.floor(Math.random()*3);
+    let pts=[];
+    let cx = w*0.46;
+    let cy=6;
+    pts.push(`${cx},${cy}`);
+
+    for(let i=0;i<seg;i++){
+      const nx = Math.max(6, Math.min(w-6, cx + (Math.random()-0.5)*(w*0.6)));
+      const ny = cy + Math.round((h/(seg+1)) * (0.9 + Math.random()*0.6));
+      pts.push(`${nx},${ny}`);
+      cx=nx; cy=ny;
+    }
+
+    let forks=[];
+
+    if(Math.random() < 0.85){
+      const last = pts[pts.length-1].split(',').map(Number);
+      const f1x = Math.min(w-6, last[0] + (Math.random()*40 + 10));
+      const f1y = last[1] + (Math.random()*24 + 6);
+      forks.push([`${last[0]},${last[1]}`, `${f1x},${Math.round(f1y)}`]);
+    }
+
+    if(Math.random() < 0.65){
+      const lastIdx = Math.max(1, pts.length-2);
+      const last = pts[lastIdx].split(',').map(Number);
+      const f2x = Math.max(6, last[0] - (Math.random()*40 + 10));
+      const f2y = last[1] + (Math.random()*24 + 6);
+      forks.push([`${last[0]},${last[1]}`, `${Math.round(f2x)},${Math.round(f2y)}`]);
+    }
+
+    const ns="http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+
+    const glow = document.createElementNS(ns,'polyline');
+    glow.setAttribute('points', pts.join(' '));
+    glow.setAttribute('class','glow');
+
+    const core = document.createElementNS(ns,'polyline');
+    core.setAttribute('points', pts.join(' '));
+    core.setAttribute('class','core');
+
+    svg.appendChild(glow);
+    svg.appendChild(core);
+
+    forks.forEach(arr => {
+      const g = document.createElementNS(ns,'polyline');
+      g.setAttribute('points', arr.join(' '));
+      g.setAttribute('class','glow');
+      svg.appendChild(g);
+
+      const c = document.createElementNS(ns,'polyline');
+      c.setAttribute('points', arr.join(' '));
+      c.setAttribute('class','core');
+      svg.appendChild(c);
+    });
+
+    spark.appendChild(svg);
+    fxFullContainer.appendChild(spark);
+
+    const revealMs = 35 + Math.random()*60;
+    core.style.animation = `drawSpark ${revealMs}ms linear forwards`;
+    glow.style.animation = `drawSpark ${revealMs}ms linear forwards`;
+
+    const life = 260 + Math.random()*420;
+    spark.style.opacity='1';
+    spark.style.transform='scale(0.98)';
+
+    setTimeout(()=>{
+      spark.style.transition = `opacity ${life*0.6}ms linear, transform ${life*0.6}ms ease-out`;
+      spark.style.opacity='0';
+      spark.style.transform = `translateY(${10 + Math.random()*10}px) scale(1.02)`;
+      setTimeout(()=>{ try{ spark.remove(); }catch(e){} }, life*0.6 + 80);
+    }, revealMs + 10);
+
+    if(impact && Math.random() < 0.6){
+      setTimeout(()=> doScreenFlash(0.28 * intensity, 66), revealMs + 12);
+
+      const spark2 = document.createElement('div');
+      spark2.className='impact-spark';
+      spark2.style.left = (posX + (w * 0.25 * (Math.random()-0.2))) + 'px';
+      spark2.style.top = (posY + h*0.85) + 'px';
+
+      spark2.innerHTML =
+        `<svg viewBox="0 0 60 18" width="60" height="18" preserveAspectRatio="xMidYMid meet">
+          <g fill="#fffdf0">
+            <ellipse cx="30" cy="10" rx="${6 + Math.random()*12}" ry="${2 + Math.random()*1.8}"/>
+          </g>
+        </svg>`;
+
+      fxFullContainer.appendChild(spark2);
+
+      setTimeout(()=>{
+        spark2.style.transition='opacity 360ms linear, transform 360ms linear';
+        spark2.style.opacity='0';
+        spark2.style.transform='translateY(6px)';
+        setTimeout(()=> spark2.remove(), 420);
+      }, revealMs + 30);
+    }
+
+    if(Math.random() < 0.66){
+      setTimeout(()=>{
+        playThunderBoom(0.28 * intensity, 420 + Math.random()*520);
+        try{ if(navigator.vibrate) navigator.vibrate(100 + Math.random()*160); }catch(e){}
+      }, revealMs + 8);
+    }
+  }
+
+  /* start thunder */
+  function startThunderFull(withRain = false){
+    clearFxFull();
+
+    fxFullContainer.style.zIndex = '9800';
+    appRoot.style.zIndex = '9600';
+    screenBlack.style.zIndex = '9500';
+
+    screenBlack.style.transition = 'opacity 140ms linear';
+    screenBlack.style.opacity = '0.92';
+
+    body.classList.add('thunder-active');
+    appRoot.classList.add('dimmed');
+
+    if(withRain) startRainFull(120);
+
+    const initial = 3 + Math.floor(Math.random()*4);
+    for(let i=0;i<initial;i++){
+      setTimeout(()=> spawnSpark({
+        size: 90 + Math.random()*200,
+        intensity: 0.9 + Math.random()*0.9,
+        impact: true
+      }), i*48);
+    }
+
+    boltSpawnInterval = setInterval(()=>{
+      const count = 1 + Math.floor(Math.random()*3);
+      for(let i=0;i<count;i++){
+        setTimeout(()=> spawnSpark({
+          size: 70 + Math.random()*180,
+          intensity: 0.5 + Math.random()*0.9,
+          impact: Math.random() < 0.7
+        }), i*24);
+      }
+
+      if(Math.random() < 0.22){
+        for(let j=0;j<2 + Math.floor(Math.random()*3); j++){
+          setTimeout(()=> spawnSpark({
+            size: 130 + Math.random()*220,
+            intensity: 1.0 + Math.random()*0.6,
+            impact: true
+          }), j*36);
+        }
+        setTimeout(()=> doCameraShake(), 60);
+      }
+    }, 220 + Math.random()*420);
+
+    lightningInterval = setInterval(()=>{
+      if(Math.random() < 0.65){
+        playThunderBoom(
+          0.38 + Math.random()*0.6,
+          700 + Math.random()*1200
+        );
+      }
+    }, 900 + Math.random()*1600);
+
+    doCameraShake();
+    setTimeout(()=> doCameraShake(), 180 + Math.random()*220);
+  }
+
+  /* wind */
+  function startWindFull(){
+    const wrap = createFxWrapper('wind');
+    const count=7;
+    for(let i=0;i<count;i++){
+      const s=document.createElement('div');
+      s.className='wind-streak';
+      s.style.top=(i*(100/count))+'%';
+      s.style.width=(20+Math.random()*60)+'vw';
+      s.style.animationDuration=(2+Math.random()*2)+'s';
+      s.style.opacity=0.7+Math.random()*0.3;
+      wrap.appendChild(s);
+    }
+  }
+
+  /* sun */
+  function startSunFull(){
+    const wrap = createFxWrapper('sun');
+    const g=document.createElement('div');
+    g.className='sun-glow';
+    g.style.pointerEvents='none';
+    wrap.appendChild(g);
+  }
+
+  /* decision engine */
+  function decideAndApply(data){
+    const w0 = data.weather && data.weather[0] ? data.weather[0] : null;
+    const id = w0 ? w0.id : null;
+    const main = w0 ? (w0.main || '').toLowerCase() : '';
+    const desc = w0 ? (w0.description || '').toLowerCase() : '';
+    const temp = data.main && typeof data.main.temp === 'number' ? data.main.temp : null;
+    const cloudsPct = data.clouds && typeof data.clouds.all === 'number' ? data.clouds.all : null;
+    const hasRain = !!data.rain;
+    const hasSnow = !!data.snow;
+    const windSpeed = data.wind && typeof data.wind.speed === 'number' ? data.wind.speed : 0;
+
+    try{
+      tempText.innerText = (temp===null)? '--°C' : Math.round(temp) + '°C';
+      cityText.innerText = data.name + (data.sys && data.sys.country ? ', '+data.sys.country : '');
+      condEl.innerText = w0 ? w0.main : '--';
+      humEl.innerText = (data.main && data.main.humidity!==undefined) ? data.main.humidity + '%' : '--';
+      windEl.innerText = (data.wind && data.wind.speed)
+        ? (data.wind.speed*3.6).toFixed(1) + ' km/h'
+        : '--';
+      cloudsEl.innerText = (data.clouds && typeof data.clouds.all === 'number')
+        ? data.clouds.all + '%'
+        : '--';
+    }catch(e){
+      console.warn('DOM update failed:', e);
+    }
+
+    if(typeof temp === 'number' && temp < 0){
+      setCenterGif('Snow');
+      startSnowFull(320);
+      return;
+    }
+
+    const isThunderId = (id>=200 && id<=232);
+    const thunderInDesc = desc.includes('thunder') || desc.includes('lightning');
+    const isRainId = (id>=500 && id<=531);
+    const isSnowId = (id>=600 && id<=622);
+    const rainInDesc = desc.includes('rain') || desc.includes('shower');
+    const snowInDesc = desc.includes('snow') || desc.includes('sleet') || desc.includes('freez');
+
+    if(isThunderId || thunderInDesc){
+      setCenterGif('Thunderstorm');
+      startThunderFull(false);
+      return;
+    }
+
+    if(hasRain || isRainId || rainInDesc){
+      setCenterGif('Rain');
+      startRainFull(260);
+      return;
+    }
+
+    if(hasSnow || isSnowId || snowInDesc){
+      setCenterGif('Snow');
+      startSnowFull(260);
+      return;
+    }
+
+    if(windSpeed >= 10){
+      setCenterGif('Wind');
+      startWindFull();
+      return;
+    }
+
+    if(main.includes('cloud') || (cloudsPct !== null && cloudsPct >= 50)){
+      setCenterGif('Clouds');
+      startSunFull();
+      return;
+    }
+
+    setCenterGif('Clear');
+    startSunFull();
+  }
+
+  /* fetch weather */
+  async function fetchWeather(city){
+    if(!API_KEY || API_KEY === 'YOUR_API_KEY_HERE'){
+      alert('Set your OpenWeatherMap API key');
+      return;
+    }
+    if(!city || !city.trim()){
+      alert('Type a city');
+      return;
+    }
+
+    try{
+      const url =
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+
+      const res = await fetch(url);
+
+      if(!res.ok){
+        const txt = await res.text();
+        alert('API error: ' + res.status);
+        console.error('API response:', res.status, txt);
+        return;
+      }
+
+      const data = await res.json();
+      decideAndApply(data);
+
+    }catch(err){
+      console.error('Fetch error:', err);
+      alert('Network/API error — open console (F12).');
+    }
+  }
+
+  /* keyword handling */
+  function handleQuery(raw){
+    const q = (raw || '').toLowerCase().trim();
+    if(!q){
+      alert('Type a city or keyword like rain/snow/thunder');
+      return;
+    }
+
+    const thunderKeywords=['thunder','lightning','thunderstorm'];
+    const rainKeywords=['rain','raining','showers','shower'];
+    const snowKeywords=['snow','snowfall','snowing','sleet'];
+
+    if(thunderKeywords.some(k => q===k || q.includes(k))){
+      const fake = {
+        weather:[{id:202,main:'Thunderstorm',description:'thunderstorm with lightning (simulated)'}],
+        main:{temp:22,humidity:88},
+        clouds:{all:92},
+        wind:{speed:6.5},
+        name:'Simulated: Thunder'
+      };
+      decideAndApply(fake);
+      return;
+    }
+
+    if(rainKeywords.some(k => q===k || q.includes(k))){
+      const fake = {
+        weather:[{id:501,main:'Rain',description:'moderate rain'}],
+        main:{temp:18,humidity:85},
+        clouds:{all:96},
+        wind:{speed:4.2},
+        rain:{"1h":3},
+        name:'Simulated: Rain'
+      };
+      decideAndApply(fake);
+      return;
+    }
+
+    if(snowKeywords.some(k => q===k || q.includes(k))){
+      const fake = {
+        weather:[{id:602,main:'Snow',description:'heavy snow'}],
+        main:{temp:-4,humidity:92},
+        clouds:{all:100},
+        wind:{speed:3.5},
+        snow:{"1h":4},
+        name:'Simulated: Snow'
+      };
+      decideAndApply(fake);
+      return;
+    }
+
+    fetchWeather(raw);
+  }
+
+  /* UI wiring */
+  function wireUI(){
+    if(!searchBtn || !cityInput){
+      console.error('Missing UI elements');
+      return;
+    }
+
+    searchBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      handleQuery(cityInput.value.trim());
+    });
+
+    cityInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        handleQuery(cityInput.value.trim());
+      }
+    });
+  }
+
+  wireUI();
+
+  /* initial */
+  setCenterGif('Clouds');
+  tempText.innerText='--°C';
+  cityText.innerText='Type a city';
+
+  window.addEventListener('beforeunload', ()=>{
+    try{
+      clearFxFull();
+      if(audioCtx && audioCtx.close) audioCtx.close();
+    }catch(e){}
+  });
+
+});
+
+</script>
+
+</body>
+</html>
